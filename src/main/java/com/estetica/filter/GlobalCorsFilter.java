@@ -2,25 +2,24 @@ package com.estetica.filter;
 
 import org.jboss.resteasy.reactive.server.ServerRequestFilter;
 import org.jboss.resteasy.reactive.server.ServerResponseFilter;
-import org.jboss.resteasy.reactive.server.spi.ServerHttpResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.core.Response;
-import java.util.List;
 
 @ApplicationScoped
 public class GlobalCorsFilter {
 
-    // 🔒 1. Injeta os cabeçalhos de CORS em todas as respostas (Removido o static)
+    // 🔒 1. Injeta os cabeçalhos de CORS em todas as respostas usando a API padrão do Jakarta
     @ServerResponseFilter
-    public void aplicarCorsGlobal(ServerHttpResponse response) {
-        response.setResponseHeader("Access-Control-Allow-Origin", List.of("*"));
-        response.setResponseHeader("Access-Control-Allow-Methods", List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
-        response.setResponseHeader("Access-Control-Allow-Headers", List.of("Content-Type", "Authorization", "Accept", "Origin"));
-        response.setResponseHeader("Access-Control-Allow-Credentials", List.of("true"));
+    public void aplicarCorsGlobal(ContainerResponseContext responseContext) {
+        responseContext.getHeaders().add("Access-Control-Allow-Origin", "*");
+        responseContext.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+        responseContext.getHeaders().add("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, Origin");
+        responseContext.getHeaders().add("Access-Control-Allow-Credentials", "true");
     }
 
-    //2. Intercepta e responde as requisições OPTIONS/Preflight
+    // 🔀 2. Intercepta e responde na hora as requisições de teste OPTIONS (Preflight)
     @ServerRequestFilter(preMatching = true)
     public Response interceptarOptions(ContainerRequestContext requestContext) {
         if ("OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
@@ -31,6 +30,6 @@ public class GlobalCorsFilter {
                     .header("Access-Control-Allow-Credentials", "true")
                     .build();
         }
-        return null; // Deixa a requisição seguir em frente se for GET, POST, etc.
+        return null;
     }
 }
