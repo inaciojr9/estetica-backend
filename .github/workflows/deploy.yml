@@ -1,0 +1,64 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches:
+      - main # Dispara o deploy sempre que atualizar a branch main
+
+env:
+  PROJECT_ID: estetica-500100 # Substitua pelo ID do seu projeto no GCP
+  REGION: us-central1             # Região do Cloud Run (us-central1 é a mais barata/com maior cota free)
+  SERVICE_NAME: estetica-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar o Java (JDK 21)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Autenticar no Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configurar CLI do Google Cloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configurar Docker para o Google Artifact Registry
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Compilar o Quarkus e Gerar Imagem Docker
+        run: |
+          # Compila o projeto gerando o jar otimizado para produção
+          ./mvnw package -DskipTests
+          
+          # Cria o repositório no Artifact Registry se ele não existir
+          gcloud artifacts repositories create estetica-repo --repository-format=docker --location=us-central1 --quiet || true
+          
+          # Faz o build da imagem Docker utilizando o Dockerfile padrão do Quarkus (JVM mode)
+          docker build -f src/main/docker/Dockerfile.jvm -t us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/estetica-repo/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+
+      - name: Fazer Push da Imagem para o Google Artifact Registry
+        run: |
+          docker push us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/estetica-repo/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      - name: Deploy no Google Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/estetica-repo/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --max-instances=1 \
+            --memory=512Mi \
+            --cpu=1
