@@ -1,5 +1,14 @@
-*
-!target/*-runner
-!target/*-runner.jar
-!target/lib/*
-!target/quarkus-app/*
+## Estrutura para o CloudRun
+#*
+#!target/*-runner
+#!target/*-runner.jar
+#!target/lib/*
+#!target/quarkus-app/*
+
+# Estrutura para o Render
+# Ignora pastas locais de build e configurações do editor para não inflar o container
+target/
+.git/
+.idea/
+.vscode/
+bin/
