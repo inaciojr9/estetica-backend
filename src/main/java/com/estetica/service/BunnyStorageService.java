@@ -28,7 +28,7 @@ public class BunnyStorageService {
         String fileName = UUID.randomUUID().toString() + extension;
         
         // URL de Upload da Bunny: https://bunnycdn.com
-        String url = "https://br.storage.bunnycdn.com/" + storageZone + "/" + fileName;
+        String url = "https://ny.storage.bunnycdn.com/" + storageZone + "/" + fileName;
 
         System.out.println("=== DEBUG BUNNY.NET ===");
         System.out.println("1. URL de Upload montada: " + url);
